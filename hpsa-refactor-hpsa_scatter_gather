@@ -1,0 +1,68 @@
+hpsa: move SG descriptor set-up out of hpsa_scatter_gather()
+
+From: Webb Scales <webbnh@hp.com>
+
+Move the code which sets up the SG descriptor out of hpsa_scatter_gather()
+and into a subroutine where it can be reused (in the next patch).  The Ext
+field is now assigned unconditionally: this makes the refactor much simpler,
+but more importantly it removes a conditional operation from inside the
+loop.  The case for which the conditional formerly tested is now executed
+(unconditionally) after the loop is exited.
+
+Signed-off-by: Webb Scales <webbnh@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |   22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index ea2520f..86367bd 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -3784,6 +3784,17 @@ out:
+ 	kfree(id_phys);
+ }
+ 
++static void hpsa_set_sg_descriptor(struct SGDescriptor *desc,
++				   struct scatterlist *sg)
++{
++	u64 addr64 = (u64) sg_dma_address(sg);
++	unsigned int len = sg_dma_len(sg);
++
++	desc->Addr = cpu_to_le64(addr64);
++	desc->Len = cpu_to_le32(len);
++	desc->Ext = 0;
++}
++
+ /* hpsa_scatter_gather takes a struct scsi_cmnd, (cmd), and does the pci
+  * dma mapping  and fills in the scatter gather entries of the
+  * hpsa command, cp.
+@@ -3792,9 +3803,7 @@ static int hpsa_scatter_gather(struct ctlr_info *h,
+ 		struct CommandList *cp,
+ 		struct scsi_cmnd *cmd)
+ {
+-	unsigned int len;
+ 	struct scatterlist *sg;
+-	u64 addr64;
+ 	int use_sg, i, sg_index, chained, last_sg;
+ 	struct SGDescriptor *curr_sg;
+ 
+@@ -3818,14 +3827,13 @@ static int hpsa_scatter_gather(struct ctlr_info *h,
+ 			curr_sg = h->cmd_sg_list[cp->cmdindex];
+ 			sg_index = 0;
+ 		}
+-		addr64 = (u64) sg_dma_address(sg);
+-		len  = sg_dma_len(sg);
+-		curr_sg->Addr = cpu_to_le64(addr64);
+-		curr_sg->Len = cpu_to_le32(len);
+-		curr_sg->Ext = cpu_to_le32((i == last_sg) * HPSA_SG_LAST);
++		hpsa_set_sg_descriptor(curr_sg, sg);
+ 		curr_sg++;
+ 	}
+ 
++	/* Back the pointer up to the last entry and mark it as "last". */
++	(curr_sg - 1)->Ext = cpu_to_le32(HPSA_SG_LAST);
++
+ 	if (use_sg + chained > h->maxSG)
+ 		h->maxSG = use_sg + chained;
+ 

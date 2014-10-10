@@ -1,0 +1,23 @@
+hpsa: try resubmitting down raid path on task set full
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 8f715f3..c7b4cc8 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1856,8 +1856,7 @@ static int handle_ioaccel_mode2_error(struct ctlr_info *h,
+ 			retry = 1;
+ 			break;
+ 		case IOACCEL2_STATUS_SR_TASK_COMP_SET_FULL:
+-			/* Make scsi midlayer do unlimited retries */
+-			cmd->result = DID_IMM_RETRY << 16;
++			retry = 1;
+ 			break;
+ 		case IOACCEL2_STATUS_SR_TASK_COMP_ABORTED:
+ 			dev_warn(&h->pdev->dev,

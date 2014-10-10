@@ -1,0 +1,23 @@
+hpsa: do not ignore return value of hpsa_register_scsi
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index a3a14a1..8f715f3 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7274,7 +7274,8 @@ reinit_after_soft_reset:
+ 	h->access.set_intr_mask(h, HPSA_INTR_ON);
+ 
+ 	hpsa_hba_inquiry(h);
+-	hpsa_register_scsi(h);	/* hook ourselves into SCSI subsystem */
++	if (hpsa_register_scsi(h)) /* hook ourselves into SCSI subsystem */
++		goto clean4;
+ 
+ 	/* Monitor the controller for firmware lockups */
+ 	h->heartbeat_sample_interval = HEARTBEAT_SAMPLE_INTERVAL;

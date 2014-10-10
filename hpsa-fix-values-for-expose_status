@@ -1,0 +1,59 @@
+hpsa: fix values for expose status
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Change the values for the expose_status field of hpsa_scsi_dev_t to make sense.
+
+HPSA_DO_NOT_EXPOSE     0x0
+HPSA_SG_ATTACH         0x1
+HPSA_ULD_ATTACH        0x2
+HPSA_SCSI_ADD          (HPSA_SG_ATTACH | HPSA_ULD_ATTACH)
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    5 +++--
+ drivers/scsi/hpsa.h |    8 ++++----
+ 2 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 03c3cc4..38d9a57 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1611,7 +1611,7 @@ static int hpsa_slave_configure(struct scsi_device *sdev)
+ 	h = sdev_to_hba(sdev);
+ 	spin_lock_irqsave(&h->devlock, flags);
+ 	sd = sdev->hostdata;
+-	if (sd && sd->expose_state & HPSA_NO_ULD_ATTACH)
++	if (sd && !(sd->expose_state & HPSA_ULD_ATTACH))
+ 		sdev->no_uld_attach = 1;
+ 
+ 	spin_unlock_irqrestore(&h->devlock, flags);
+@@ -3322,7 +3322,8 @@ static void hpsa_update_scsi_devices(struct ctlr_info *h, int hostno)
+ 					"Masked physical device detected\n");
+ 			this_device->expose_state = HPSA_DO_NOT_EXPOSE;
+ 		} else {
+-			this_device->expose_state = HPSA_EXPOSE;
++			this_device->expose_state =
++					HPSA_SG_ATTACH | HPSA_ULD_ATTACH;
+ 		}
+ 
+ 		switch (this_device->devtype) {
+diff --git a/drivers/scsi/hpsa.h b/drivers/scsi/hpsa.h
+index e4f51f7..fa9caba 100644
+--- a/drivers/scsi/hpsa.h
++++ b/drivers/scsi/hpsa.h
+@@ -54,10 +54,10 @@ struct hpsa_scsi_dev_t {
+ 					 */
+ 	struct raid_map_data raid_map;	/* I/O accelerator RAID map */
+ 	int supports_aborts;
+-#define HPSA_NO_ULD_ATTACH	0x1
+-#define HPSA_DO_NOT_EXPOSE	0x2
+-#define HPSA_EXPOSE		0x4
+-#define HPSA_SCSI_ADD		(HPSA_NO_ULD_ATTACH | HPSA_EXPOSE)
++#define HPSA_DO_NOT_EXPOSE	0x0
++#define HPSA_SG_ATTACH		0x1
++#define HPSA_ULD_ATTACH		0x2
++#define HPSA_SCSI_ADD		(HPSA_SG_ATTACH | HPSA_ULD_ATTACH)
+ 	u8 expose_state;
+ };
+ 

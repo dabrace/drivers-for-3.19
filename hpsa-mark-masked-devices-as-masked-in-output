@@ -1,0 +1,28 @@
+hpsa: mark masked devices as masked in output
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Otherwise it can seems as though there is a discrepancy between
+the driver's output and the output of lsscsi when the driver
+claims to have "added" a device but then does not actually call
+scsi_add_device() for it because it is masked.
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 9ae294d..b1238d4 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1138,7 +1138,8 @@ lun_assigned:
+ 	(*nadded)++;
+ 
+ 	dev_info(&h->pdev->dev,
+-		"added scsi %d:%d:%d:%d: %s %.8s %.16s RAID-%s SSDSmartPathCap%c En%c Exp=%d\n",
++		"%6s scsi %d:%d:%d:%d: %s %.8s %.16s RAID-%s SSDSmartPathCap%c En%c Exp=%d\n",
++		device->expose_state & HPSA_SCSI_ADD ? "added" : "masked",
+ 		hostno, device->bus, device->target, device->lun,
+ 		scsi_device_type(device->devtype),
+ 		device->vendor,

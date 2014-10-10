@@ -1,0 +1,24 @@
+hpsa: return -ENOMEM not -EFAULT from hpsa_passthru_ioctl on kmalloc failure
+
+From: Robert Elliott <elliott@hp.com>
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 60e0761..660ebc7 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -5515,7 +5515,7 @@ static int hpsa_passthru_ioctl(struct ctlr_info *h, void __user *argp)
+ 	if (iocommand.buf_size > 0) {
+ 		buff = kmalloc(iocommand.buf_size, GFP_KERNEL);
+ 		if (buff == NULL)
+-			return -EFAULT;
++			return -ENOMEM;
+ 		if (iocommand.Request.Type.Direction & XFER_WRITE) {
+ 			/* Copy the data into the buffer we created */
+ 			if (copy_from_user(buff, iocommand.buf,

@@ -1,0 +1,26 @@
+hpsa: fix wrong indent level in hpsa_init_one
+
+From: Robert Elliott <elliott@hp.com>
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 1f741dd..11aeea4 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7601,8 +7601,8 @@ reinit_after_soft_reset:
+ 		goto reinit_after_soft_reset;
+ 	}
+ 
+-		/* Enable Accelerated IO path at driver layer */
+-		h->acciopath_status = 1;
++	/* Enable Accelerated IO path at driver layer */
++	h->acciopath_status = 1;
+ 
+ 	h->lockup_detector_enabled = 1;
+ 

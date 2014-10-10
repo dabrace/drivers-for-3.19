@@ -1,0 +1,25 @@
+hpsa: reinitialize commands on resubmitting failed ioaccel commands
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+In particular, reinitialize the cmd_type and busaddr fields as these
+will not be correct for submitting down the RAID stack path
+after ioaccel command completion.
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 47d91be..49f9b07 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -4322,6 +4322,7 @@ static void hpsa_command_resubmit_worker(struct work_struct *work)
+ 		cmd->scsi_done(cmd);
+ 		return;
+ 	}
++	hpsa_cmd_init(c->h, c->cmdindex, c);
+ 	if (hpsa_ciss_submit(c->h, c, cmd, dev->scsi3addr)) {
+ 		/*
+ 		 * If we get here, it means dma mapping failed. Try

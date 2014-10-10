@@ -1,0 +1,24 @@
+hpsa: return -ENOMEM not 1 from ioaccel2_alloc_cmds_and_bft on allocation failure
+
+From: Robert Elliott <elliott@hp.com>
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 0fc4e1f..3592f1a 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7994,7 +7994,7 @@ clean_up:
+ 			h->nr_cmds * sizeof(*h->ioaccel2_cmd_pool),
+ 			h->ioaccel2_cmd_pool, h->ioaccel2_cmd_pool_dhandle);
+ 	kfree(h->ioaccel2_blockFetchTable);
+-	return 1;
++	return -ENOMEM;
+ }
+ 
+ static void hpsa_put_ctlr_into_performant_mode(struct ctlr_info *h)

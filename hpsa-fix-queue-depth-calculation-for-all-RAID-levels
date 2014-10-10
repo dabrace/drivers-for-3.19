@@ -1,0 +1,47 @@
+hpsa: fix queue_depth calculation for all RAID levels
+
+From: Robert Elliott <elliott@hp.com>
+
+The logical drive queue_depth is ending up 1024 for
+RAID-5 made from 4 physical drives and other more
+complex RAID levels, which is too high.
+
+The calculation is being confused by parity rotation,
+ending up adding the depths supported by the drives
+for each different rotation combination (row_cnt).
+
+Stop counting after the true number of physical
+drives, which is:
+	map->layout_map_count *
+	(map->data_disks_per_row + map->metadata_disks_per_row)
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+---
+ drivers/scsi/hpsa.c |    7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 9882a26..02ab095 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1636,6 +1636,8 @@ static void hpsa_figure_phys_disk_ptrs(struct ctlr_info *h,
+ 	int i, j;
+ 	int nraid_map_entries = map->row_cnt * map->layout_map_count *
+ 		(map->data_disks_per_row + map->metadata_disks_per_row);
++	int nphys_disk = map->layout_map_count *
++		(map->data_disks_per_row + map->metadata_disks_per_row);
+ 	int qdepth;
+ 
+ 	if (nraid_map_entries > RAID_MAP_MAX_ENTRIES)
+@@ -1655,8 +1657,9 @@ static void hpsa_figure_phys_disk_ptrs(struct ctlr_info *h,
+ 				continue;
+ 
+ 			logical_drive->phys_disk[i] = dev[j];
+-			qdepth = min(h->nr_cmds, qdepth +
+-				logical_drive->phys_disk[i]->queue_depth);
++			if (i < nphys_disk)
++				qdepth = min(h->nr_cmds, qdepth +
++				    logical_drive->phys_disk[i]->queue_depth);
+ 			break;
+ 		}
+ 

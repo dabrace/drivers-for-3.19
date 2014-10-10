@@ -1,0 +1,30 @@
+hpsa:  crash on bad block layer tags
+
+From: Webb Scales <webbnh@hp.com>
+
+Modify cmd_tagged_allocation() to crash when it receives a bad tag from the
+block layer, instead of returning a NULL pointer and letting the next layer
+up fail:  we should never get a bad tag, and if we do it means that the
+system is misconfigured (e.g., that the scsi-mq support is not enabled),
+and it would be best to die a clean, swift death before anyone gets hurt.
+
+Signed-off-by: Webb Scales <webbnh@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index c2fa71a..8817337 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -5614,7 +5614,8 @@ static struct CommandList *cmd_tagged_alloc(struct ctlr_info *h,
+ 
+ 	if (idx < h->reserved_cmds || idx > h->nr_cmds) {
+ 		dev_err(&h->pdev->dev, "Bad block tag: %d\n", idx);
+-		return NULL;
++		/* This value comes from the block layer...it's not our bug. */
++		BUG_ON(idx < HPSA_NRESERVED_CMDS || idx > h->nr_cmds);
+ 	}
+ 
+ 	refcount = atomic_inc_return(&c->refcount);

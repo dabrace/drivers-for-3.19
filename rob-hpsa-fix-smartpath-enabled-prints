@@ -1,0 +1,47 @@
+hpsa: print accurate SSD Smart Path Enabled status
+
+From: Robert Elliott <elliott@hp.com>
+
+offload_enabled changes are deferred until after the
+added/updated prints occur, so the values are incorrect.
+
+Print the offload_to_be_enabled values when those
+are correct.
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 6b53ac8..e5718df 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1282,7 +1282,7 @@ lun_assigned:
+ 		device->raid_level > RAID_UNKNOWN ?
+ 			"RAID-?" : raid_label[device->raid_level],
+ 		device->offload_config ? '+' : '-',
+-		device->offload_enabled ? '+' : '-',
++		device->offload_to_be_enabled ? '+' : '-',
+ 		device->expose_state);
+ 	return 0;
+ }
+@@ -1336,7 +1336,7 @@ static void hpsa_scsi_update_entry(struct ctlr_info *h, int hostno,
+ 		h->dev[entry]->raid_level > RAID_UNKNOWN ?
+ 			"RAID-?" : raid_label[h->dev[entry]->raid_level],
+ 		h->dev[entry]->offload_config ? '+' : '-',
+-		h->dev[entry]->offload_enabled ? '+' : '-',
++		h->dev[entry]->offload_to_be_enabled ? '+' : '-',
+ 		h->dev[entry]->expose_state);
+ }
+ 
+@@ -1374,7 +1374,7 @@ static void hpsa_scsi_replace_entry(struct ctlr_info *h, int hostno,
+ 		new_entry->raid_level > RAID_UNKNOWN ?
+ 			"RAID-?" : raid_label[new_entry->raid_level],
+ 		new_entry->offload_config ? '+' : '-',
+-		new_entry->offload_enabled ? '+' : '-',
++		new_entry->offload_to_be_enabled ? '+' : '-',
+ 		new_entry->expose_state);
+ }
+ 

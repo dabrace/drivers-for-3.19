@@ -1,0 +1,26 @@
+hpsa: return FAILED from abort handler if controller locked up.
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+If the controller is locked up, sending further commands isn't
+possible, so report the abort as failed immediately.
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index dcca6a5..159fa51 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -4776,6 +4776,9 @@ static int hpsa_eh_abort_handler(struct scsi_cmnd *sc)
+ 			"ABORT REQUEST FAILED, Controller lookup failed.\n"))
+ 		return FAILED;
+ 
++	if (lockup_detected(h))
++		return FAILED;
++
+ 	/* Check that controller supports some kind of task abort */
+ 	if (!(HPSATMF_PHYS_TASK_ABORT & h->TMFSupportFlags) &&
+ 		!(HPSATMF_LOG_TASK_ABORT & h->TMFSupportFlags))

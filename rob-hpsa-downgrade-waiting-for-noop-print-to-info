@@ -1,0 +1,26 @@
+hpsa: downgrade the Waiting for no-op print to dev_info
+
+From: Robert Elliott <elliott@hp.com>
+
+There is nothing worrisome about the "Waiting for controller to
+respond to no-op" print, so use dev_info rather than dev_warn.
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 20b1784..2ea395d 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7536,7 +7536,7 @@ static int hpsa_init_reset_devices(struct pci_dev *pdev)
+ 		goto out_disable;
+ 
+ 	/* Now try to get the controller to respond to a no-op */
+-	dev_warn(&pdev->dev, "Waiting for controller to respond to no-op\n");
++	dev_info(&pdev->dev, "Waiting for controller to respond to no-op\n");
+ 	for (i = 0; i < HPSA_POST_RESET_NOOP_RETRIES; i++) {
+ 		if (hpsa_noop(pdev) == 0)
+ 			break;

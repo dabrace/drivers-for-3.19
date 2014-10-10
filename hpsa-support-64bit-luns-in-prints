@@ -1,0 +1,38 @@
+hpsa: Support 64-bit lun values in printks
+
+From: Robert Elliott <elliott@hp.com>
+
+The scsi-mq.2 tree includes 64-bit LUN support in some
+SCSI structures, causing the compiler to complain that
+%d is not big enough in some of the hpsa
+controller:bus:target:lun prints
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 8f57e3c..148cad1 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -5231,7 +5231,7 @@ static int hpsa_eh_abort_handler(struct scsi_cmnd *sc)
+ 	/* if controller locked up, we can guarantee command won't complete */
+ 	if (lockup_detected(h)) {
+ 		dev_warn(&h->pdev->dev,
+-			"scsi %d:%d:%d:%d scmd %p ABORT FAILED, lockup detected\n",
++			"scsi %d:%d:%d:%llu scmd %p ABORT FAILED, lockup detected\n",
+ 			h->scsi_host->host_no, sc->device->channel,
+ 			sc->device->id, sc->device->lun, sc);
+ 		return FAILED;
+@@ -5245,7 +5245,7 @@ static int hpsa_eh_abort_handler(struct scsi_cmnd *sc)
+ 		/* check again in case one just occurred */
+ 		if (lockup_detected(h)) {
+ 			dev_warn(&h->pdev->dev,
+-				"scsi %d:%d:%d:%d scmd %p ABORT FAILED, lockup detected\n",
++				"scsi %d:%d:%d:%llu scmd %p ABORT FAILED, lockup detected\n",
+ 				h->scsi_host->host_no, sc->device->channel,
+ 				sc->device->id, sc->device->lun, sc);
+ 			return FAILED;

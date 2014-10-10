@@ -1,0 +1,26 @@
+hpsa: fix a string constant broken into two lines
+
+From: Robert Elliott <elliott@hp.com>
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 34f941d..87c8c49 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7073,8 +7073,8 @@ reinit_after_soft_reset:
+ 		rc = hpsa_request_irq(h, hpsa_msix_discard_completions,
+ 					hpsa_intx_discard_completions);
+ 		if (rc) {
+-			dev_warn(&h->pdev->dev, "Failed to request_irq after "
+-				"soft reset.\n");
++			dev_warn(&h->pdev->dev,
++				"Failed to request_irq after soft reset.\n");
+ 			goto clean4;
+ 		}
+ 

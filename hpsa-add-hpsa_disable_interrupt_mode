@@ -1,0 +1,41 @@
+hpsa: add hpsa_disable_interrupt_mode
+
+From: Robert Elliott <elliott@hp.com>
+
+In preparation for cleaning up in case of irq allocation failure
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |   14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 3168c36..996a342 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -6550,10 +6550,22 @@ static int find_PCI_BAR_index(struct pci_dev *pdev, unsigned long pci_bar_addr)
+ 	return -1;
+ }
+ 
++static void hpsa_disable_interrupt_mode(struct ctlr_info *h)
++{
++#ifdef CONFIG_PCI_MSI
++	if (h->msix_vector) {
++		if (h->pdev->msix_enabled)
++			pci_disable_msix(h->pdev);
++	} else if (h->msi_vector) {
++		if (h->pdev->msi_enabled)
++			pci_disable_msi(h->pdev);
++	}
++#endif /* CONFIG_PCI_MSI */
++}
++
+ /* If MSI/MSI-X is supported by the kernel we will try to enable it on
+  * controllers that are capable. If not, we use legacy INTx mode.
+  */
+-
+ static void hpsa_interrupt_mode(struct ctlr_info *h)
+ {
+ #ifdef CONFIG_PCI_MSI

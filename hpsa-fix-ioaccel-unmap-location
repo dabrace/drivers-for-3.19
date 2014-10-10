@@ -1,0 +1,54 @@
+hpsa: unmap ioaccel2 commands before, not after adding to resubmit workqueue
+
+From: Joe Handzik <joseph.t.handzik@hp.com>
+
+The command could get thrown onto a work queue before we'd hit the unmap.
+Squash with the appropriate earlier patch (likely
+the larger scatter gather command support patch).
+
+Signed-off-by: Joe Handzik <joseph.t.handzik@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 86886f2..38d9b72 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -2066,9 +2066,6 @@ static void process_ioaccel2_completion(struct ctlr_info *h,
+ {
+ 	struct io_accel2_cmd *c2 = &h->ioaccel2_cmd_pool[c->cmdindex];
+ 
+-	if (c2->sg[0].chain_indicator == IOACCEL2_CHAIN)
+-		hpsa_unmap_ioaccel2_sg_chain_block(h, c2);
+-
+ 	atomic_dec(&c->phys_disk->ioaccel_cmds_out);
+ 
+ 	/* check for good status */
+@@ -2137,6 +2134,7 @@ static void complete_scsi_command(struct CommandList *cp)
+ 	struct ctlr_info *h;
+ 	struct ErrorInfo *ei;
+ 	struct hpsa_scsi_dev_t *dev;
++	struct io_accel2_cmd *c2;
+ 
+ 	int sense_key;
+ 	int asc;      /* additional sense code */
+@@ -2147,12 +2145,17 @@ static void complete_scsi_command(struct CommandList *cp)
+ 	cmd = cp->scsi_cmd;
+ 	h = cp->h;
+ 	dev = cmd->device->hostdata;
++	c2 = &h->ioaccel2_cmd_pool[cp->cmdindex];
+ 
+ 	scsi_dma_unmap(cmd); /* undo the DMA mappings */
+ 	if ((cp->cmd_type == CMD_SCSI) &&
+ 		(cp->Header.SGTotal > h->max_cmd_sg_entries))
+ 		hpsa_unmap_sg_chain_block(h, cp);
+ 
++	if ((cp->cmd_type == CMD_IOACCEL2) &&
++		(c2->sg[0].chain_indicator == IOACCEL2_CHAIN))
++		hpsa_unmap_ioaccel2_sg_chain_block(h, c2);
++
+ 	cmd->result = (DID_OK << 16); 		/* host byte */
+ 	cmd->result |= (COMMAND_COMPLETE << 8);	/* msg byte */
+ 

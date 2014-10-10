@@ -1,0 +1,113 @@
+hpsa: remove direct lookup bit from command tags
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Now that every commmand is "direct lookup" we don't
+need a bit to tell us whether it is "direct lookup"
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c     |   24 ++++++------------------
+ drivers/scsi/hpsa_cmd.h |    9 +++------
+ 2 files changed, 9 insertions(+), 24 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 266f07b..448f1a7 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -3484,8 +3484,7 @@ static int hpsa_scsi_ioaccel2_queue_command(struct ctlr_info *h,
+ 	set_encrypt_ioaccel2(h, c, cp);
+ 
+ 	cp->scsi_nexus = ioaccel_handle;
+-	cp->Tag = (c->cmdindex << DIRECT_LOOKUP_SHIFT) |
+-				DIRECT_LOOKUP_BIT;
++	cp->Tag = c->cmdindex << DIRECT_LOOKUP_SHIFT;
+ 	memcpy(cp->cdb, cdb, sizeof(cp->cdb));
+ 
+ 	/* fill in sg elements */
+@@ -3920,9 +3919,7 @@ static int hpsa_scsi_queue_command(struct Scsi_Host *sh, struct scsi_cmnd *cmd)
+ 
+ 	c->Header.ReplyQueue = 0;  /* unused in simple mode */
+ 	memcpy(&c->Header.LUN.LunAddrBytes[0], &scsi3addr[0], 8);
+-	c->Header.tag = cpu_to_le64(
+-				(u64) ((c->cmdindex << DIRECT_LOOKUP_SHIFT) |
+-					DIRECT_LOOKUP_BIT));
++	c->Header.tag = cpu_to_le64((u64) c->cmdindex << DIRECT_LOOKUP_SHIFT);
+ 
+ 	/* Fill in the request block... */
+ 
+@@ -4518,10 +4515,8 @@ static struct CommandList *cmd_alloc(struct ctlr_info *h)
+ 
+ 	c = h->cmd_pool + i;
+ 	memset(c, 0, sizeof(*c));
+-	c->Header.tag = cpu_to_le64((u64) (i << DIRECT_LOOKUP_SHIFT) |
+-						DIRECT_LOOKUP_BIT);
+-	cmd_dma_handle = h->cmd_pool_dhandle
+-	    + i * sizeof(*c);
++	c->Header.tag = cpu_to_le64((u64) i << DIRECT_LOOKUP_SHIFT);
++	cmd_dma_handle = h->cmd_pool_dhandle + i * sizeof(*c);
+ 	c->err_info = h->errinfo_pool + i;
+ 	memset(c->err_info, 0, sizeof(*c->err_info));
+ 	err_dma_handle = h->errinfo_pool_dhandle
+@@ -5239,11 +5234,6 @@ static inline void finish_cmd(struct CommandList *c)
+ 		complete(c->waiting);
+ }
+ 
+-static inline u32 hpsa_tag_to_index(u32 tag)
+-{
+-	return tag >> DIRECT_LOOKUP_SHIFT;
+-}
+-
+ 
+ static inline u32 hpsa_tag_discard_error_bits(struct ctlr_info *h, u32 tag)
+ {
+@@ -5261,7 +5251,7 @@ static inline void process_indexed_cmd(struct ctlr_info *h,
+ 	u32 tag_index;
+ 	struct CommandList *c;
+ 
+-	tag_index = hpsa_tag_to_index(raw_tag);
++	tag_index = raw_tag >> DIRECT_LOOKUP_SHIFT;
+ 	if (!bad_tag(h, tag_index, raw_tag)) {
+ 		c = h->cmd_pool + tag_index;
+ 		finish_cmd(c);
+@@ -7078,9 +7068,7 @@ static void hpsa_enter_performant_mode(struct ctlr_info *h, u32 trans_support)
+ 			cp->host_context_flags = IOACCEL1_HCFLAGS_CISS_FORMAT;
+ 			cp->timeout_sec = 0;
+ 			cp->ReplyQueue = 0;
+-			cp->tag =
+-				cpu_to_le64((u64) ((i << DIRECT_LOOKUP_SHIFT) |
+-						DIRECT_LOOKUP_BIT));
++			cp->tag = cpu_to_le64((u64) i << DIRECT_LOOKUP_SHIFT);
+ 			cp->host_addr =
+ 				cpu_to_le64((u64) (h->ioaccel_cmd_pool_dhandle +
+ 					(i * sizeof(struct io_accel1_cmd))));
+diff --git a/drivers/scsi/hpsa_cmd.h b/drivers/scsi/hpsa_cmd.h
+index a0de310..47d484a 100644
+--- a/drivers/scsi/hpsa_cmd.h
++++ b/drivers/scsi/hpsa_cmd.h
+@@ -375,22 +375,19 @@ struct ErrorInfo {
+ #define CMD_IOACCEL1	0x04
+ #define CMD_IOACCEL2	0x05
+ 
+-#define DIRECT_LOOKUP_SHIFT 5
+-#define DIRECT_LOOKUP_BIT 0x10
++#define DIRECT_LOOKUP_SHIFT 4
+ #define DIRECT_LOOKUP_MASK (~((1 << DIRECT_LOOKUP_SHIFT) - 1))
+ 
+ #define HPSA_ERROR_BIT          0x02
+ struct ctlr_info; /* defined in hpsa.h */
+-/* The size of this structure needs to be divisible by 32
+- * on all architectures because low 5 bits of the addresses
++/* The size of this structure needs to be divisible by 128
++ * on all architectures.  The low 4 bits of the addresses
+  * are used as follows:
+  *
+  * bit 0: to device, used to indicate "performant mode" command
+  *        from device, indidcates error status.
+  * bit 1-3: to device, indicates block fetch table entry for
+  *          reducing DMA in fetching commands from host memory.
+- * bit 4: used to indicate whether tag is "direct lookup" (index),
+- *        or a bus address.
+  */
+ 
+ #define COMMANDLIST_ALIGNMENT 128

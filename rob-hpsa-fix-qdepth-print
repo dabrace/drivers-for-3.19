@@ -1,0 +1,26 @@
+hpsa: remove 0x from queue depth print which is in decimal
+
+From: Robert Elliott <elliott@hp.com>
+
+The queue depth printed at startup is in decimal, so
+shouldn't have a 0x prefix.
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index f249146..4eaa77d 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -6976,7 +6976,7 @@ static void print_cfg_table(struct device *dev, struct CfgTable *tb)
+ 	       readl(&(tb->HostWrite.CoalIntDelay)));
+ 	dev_info(dev, "   Coalesce Interrupt Count = 0x%x\n",
+ 	       readl(&(tb->HostWrite.CoalIntCount)));
+-	dev_info(dev, "   Max outstanding commands = 0x%d\n",
++	dev_info(dev, "   Max outstanding commands = %d\n",
+ 	       readl(&(tb->CmdsOutMax)));
+ 	dev_info(dev, "   Bus Types = 0x%x\n", readl(&(tb->BusTypes)));
+ 	for (i = 0; i < 16; i++)

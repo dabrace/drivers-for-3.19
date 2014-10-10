@@ -1,0 +1,95 @@
+hpsa: honor queue depth of physical devices
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+When using the ioaccel submission methods, requests destined
+for RAID volumes are sometimes diverted to physical devices.
+The OS has no or limited knowledge of these physical devices,
+so it is up to the driver to avoid pushing the device too hard.
+It is better to honor the physical device queue limit rather than
+making the device spew zillions of TASK SET FULL responses.
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |   14 ++++++++++++++
+ drivers/scsi/hpsa.h |    4 ++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index b57c101..9925fe3 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1703,6 +1703,7 @@ static int hpsa_slave_alloc(struct scsi_device *sdev)
+ 		if (sd->queue_depth)
+ 			scsi_adjust_queue_depth(sdev, scsi_get_tag_type(sdev),
+ 						sd->queue_depth);
++		atomic_set(&sd->ioaccel_cmds_out, 0);
+ 	} else {
+ 		sdev->hostdata = NULL;
+ 	}
+@@ -1912,6 +1913,8 @@ static void process_ioaccel2_completion(struct ctlr_info *h,
+ {
+ 	struct io_accel2_cmd *c2 = &h->ioaccel2_cmd_pool[c->cmdindex];
+ 
++	atomic_dec(&dev->ioaccel_cmds_out);
++
+ 	/* check for good status */
+ 	if (likely(c2->error_data.serv_response == 0 &&
+ 			c2->error_data.status == 0)) {
+@@ -2012,6 +2015,7 @@ static void complete_scsi_command(struct CommandList *cp)
+ 	 */
+ 	if (cp->cmd_type == CMD_IOACCEL1) {
+ 		struct io_accel1_cmd *c = &h->ioaccel_cmd_pool[cp->cmdindex];
++		atomic_dec(&dev->ioaccel_cmds_out);
+ 		cp->Header.SGList = cp->Header.SGTotal = scsi_sg_count(cmd);
+ 		cp->Request.CDBLen = c->io_flags & IOACCEL1_IOFLAGS_CDBLEN_MASK;
+ 		cp->Header.tag = c->tag;
+@@ -4421,6 +4425,13 @@ static int hpsa_ioaccel_submit(struct ctlr_info *h,
+ 
+ 	cmd->host_scribble = (unsigned char *) c;
+ 
++	/* Try to honor the device's queue depth */
++	atomic_inc(&dev->ioaccel_cmds_out);
++	if (atomic_read(&dev->ioaccel_cmds_out) > dev->queue_depth) {
++		atomic_dec(&dev->ioaccel_cmds_out);
++		return IO_ACCEL_INELIGIBLE;
++	}
++
+ 	if (dev->offload_enabled) {
+ 		hpsa_cmd_init(h, c->cmdindex, c);
+ 		c->cmd_type = CMD_SCSI;
+@@ -4430,6 +4441,7 @@ static int hpsa_ioaccel_submit(struct ctlr_info *h,
+ 			return 0; /* Sent on ioaccel path */
+ 		if (rc < 0) {   /* scsi_dma_map failed. */
+ 			cmd_free(h, c);
++			atomic_dec(&dev->ioaccel_cmds_out);
+ 			return SCSI_MLQUEUE_HOST_BUSY;
+ 		}
+ 	} else if (dev->ioaccel_handle) {
+@@ -4441,9 +4453,11 @@ static int hpsa_ioaccel_submit(struct ctlr_info *h,
+ 			return 0; /* Sent on direct map path */
+ 		if (rc < 0) {   /* scsi_dma_map failed. */
+ 			cmd_free(h, c);
++			atomic_dec(&dev->ioaccel_cmds_out);
+ 			return SCSI_MLQUEUE_HOST_BUSY;
+ 		}
+ 	}
++	atomic_dec(&dev->ioaccel_cmds_out);
+ 	return rc;
+ }
+ 
+diff --git a/drivers/scsi/hpsa.h b/drivers/scsi/hpsa.h
+index e9e6954..deb0944 100644
+--- a/drivers/scsi/hpsa.h
++++ b/drivers/scsi/hpsa.h
+@@ -47,6 +47,10 @@ struct hpsa_scsi_dev_t {
+ 	unsigned char raid_level;	/* from inquiry page 0xC1 */
+ 	unsigned char volume_offline;	/* discovered via TUR or VPD */
+ 	u16 queue_depth;
++	atomic_t ioaccel_cmds_out;	/* Only used for physical devices
++					 * counts commands sent to physical
++					 * device via "ioaccel" path.
++					 */
+ 	u32 ioaccel_handle;
+ 	int offload_config;		/* I/O accel RAID offload configured */
+ 	int offload_enabled;		/* I/O accel RAID offload enabled */

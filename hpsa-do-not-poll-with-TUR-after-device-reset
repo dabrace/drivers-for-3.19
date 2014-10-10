@@ -1,0 +1,41 @@
+hpsa: do not poll device with TUR after device reset
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+If a logical drive has failed, resetting it will ensure
+outstanding commands are completed, but polling it with
+TURs after the reset will not work because the TURs will
+never report good status.  So successful TUR should not
+be a condition of success for the device reset error
+handler.
+
+NOTE: THERE IS A PROBLEM WITH THIS PATCH.  While it fixes
+the problem that a failed logical drive will never become
+ready, and so fixes the problem that the reset device error
+handler would get stuck for too long waiting for a failed
+logical drive to become ready, it defeats the purpose of
+that barrage of test unit readys, which was to avoid races
+of the completions of aborted commands with the device reset
+command completion in the completion queues.  So, an alternative
+solution for those races is needed (webb is working on this).
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index fb14a9b..9882a26 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -5250,9 +5250,7 @@ static int hpsa_eh_device_reset_handler(struct scsi_cmnd *scsicmd)
+ 	rc = hpsa_send_reset(h, dev->scsi3addr, HPSA_RESET_TYPE_LUN,
+ 			     DEFAULT_REPLY_QUEUE);
+ 	if (rc == 0)
+-		if (!wait_for_device_to_become_ready(h, dev->scsi3addr,
+-						    DEFAULT_REPLY_QUEUE))
+-			return SUCCESS;
++		return SUCCESS;
+ 
+ 	dev_warn(&h->pdev->dev,
+ 		"resetting scsi %d:%d:%d:%d failed\n",

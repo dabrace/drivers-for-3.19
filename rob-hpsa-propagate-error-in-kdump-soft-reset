@@ -1,0 +1,45 @@
+hpsa: propagate the error code in hpsa_kdump_soft_reset
+
+From: Robert Elliott <elliott@hp.com>
+
+If hpsa_wait_for_board_state fails, hpsa_kdump_soft_reset
+should propagate its return value (e.g., -ENODEV) rather
+than just returning -1.
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |   11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index eba0b69..b8e4058 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7709,19 +7709,22 @@ static int hpsa_request_irqs(struct ctlr_info *h,
+ 
+ static int hpsa_kdump_soft_reset(struct ctlr_info *h)
+ {
++	int rc;
+ 	hpsa_send_host_reset(h, RAID_CTLR_LUNID, HPSA_RESET_TYPE_CONTROLLER);
+ 
+ 	dev_info(&h->pdev->dev, "Waiting for board to soft reset.\n");
+-	if (hpsa_wait_for_board_state(h->pdev, h->vaddr, BOARD_NOT_READY)) {
++	rc = hpsa_wait_for_board_state(h->pdev, h->vaddr, BOARD_NOT_READY);
++	if (rc) {
+ 		dev_warn(&h->pdev->dev, "Soft reset had no effect.\n");
+-		return -1;
++		return rc;
+ 	}
+ 
+ 	dev_info(&h->pdev->dev, "Board reset, awaiting READY status.\n");
+-	if (hpsa_wait_for_board_state(h->pdev, h->vaddr, BOARD_READY)) {
++	rc = hpsa_wait_for_board_state(h->pdev, h->vaddr, BOARD_READY);
++	if (rc) {
+ 		dev_warn(&h->pdev->dev, "Board failed to become ready "
+ 			"after soft reset.\n");
+-		return -1;
++		return rc;
+ 	}
+ 
+ 	return 0;

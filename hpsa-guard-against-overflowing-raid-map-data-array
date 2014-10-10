@@ -1,0 +1,28 @@
+hpsa: guard against overflowing raid map array
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+In the code that translates logical drive LBAs to physical
+drive LBAs if we overflow the raid map disk data array we
+will get the wrong answers.  We do not expect that to happen,
+but best to be on the safe side and guard against it anyway.
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 9cd6c69..307e9fe 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -4344,6 +4344,9 @@ static int hpsa_scsi_ioaccel_raid_map(struct ctlr_info *h,
+ 		return IO_ACCEL_INELIGIBLE;
+ 	}
+ 
++	if (unlikely(map_index >= RAID_MAP_MAX_ENTRIES))
++		return IO_ACCEL_INELIGIBLE;
++
+ 	c->phys_disk = dev->phys_disk[map_index];
+ 
+ 	disk_handle = dd[map_index].ioaccel_handle;

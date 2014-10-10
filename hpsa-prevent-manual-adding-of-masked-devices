@@ -1,0 +1,33 @@
+hpsa: prevent manually adding masked physical devices
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Since masked physical devices are now present in h->dev[] array
+it is perfectly possible to do
+
+	echo scsi add-single-device 2 2 0 0 > /proc/scsi/scsi
+
+and bring them online.  This should not be the case for masked
+physical devices..
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 433e804..03c3cc4 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -1593,8 +1593,10 @@ static int hpsa_slave_alloc(struct scsi_device *sdev)
+ 	spin_lock_irqsave(&h->devlock, flags);
+ 	sd = lookup_hpsa_scsi_dev(h, sdev_channel(sdev),
+ 		sdev_id(sdev), sdev->lun);
+-	if (sd != NULL)
++	if (sd && (sd->expose_state & HPSA_SCSI_ADD))
+ 		sdev->hostdata = sd;
++	else
++		sdev->hostdata = NULL;
+ 	spin_unlock_irqrestore(&h->devlock, flags);
+ 	return 0;
+ }

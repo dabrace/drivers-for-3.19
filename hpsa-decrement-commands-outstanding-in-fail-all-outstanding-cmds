@@ -1,0 +1,21 @@
+hpsa: decrement h->commands_outstanding in fail_all_outstanding_cmds
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index c857499..851c967 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -6727,6 +6727,7 @@ static void fail_all_outstanding_cmds(struct ctlr_info *h)
+ 		if (refcount > 1) {
+ 			c->err_info->CommandStatus = CMD_HARDWARE_ERR;
+ 			finish_cmd(c);
++			atomic_dec(&h->commands_outstanding);
+ 		}
+ 		cmd_free(h, c);
+ 	}

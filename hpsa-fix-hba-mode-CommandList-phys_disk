@@ -1,0 +1,22 @@
+Set the phys_disk value for a CommandList structure that is submitted. Squash
+
+From: Joe Handzik <joseph.t.handzik@hp.com>
+
+this with an appropriate earlier patch when sent upstream.
+---
+ drivers/scsi/hpsa.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index ced3b95..86886f2 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -3905,6 +3905,8 @@ static int hpsa_scsi_ioaccel_direct_map(struct ctlr_info *h,
+ 	struct scsi_cmnd *cmd = c->scsi_cmd;
+ 	struct hpsa_scsi_dev_t *dev = cmd->device->hostdata;
+ 
++	c->phys_disk = dev;
++
+ 	return hpsa_scsi_ioaccel_queue_command(h, c, dev->ioaccel_handle,
+ 		cmd->cmnd, cmd->cmd_len, dev->scsi3addr, dev);
+ }

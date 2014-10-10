@@ -1,0 +1,27 @@
+hpsa: if controller locked up return failed from device reset handler
+
+From: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+
+Returning failed from the device reset handler will get the device
+kicked offline, which is fine if the controller is locked up anyhow.
+
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 159fa51..5699e49 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -4550,6 +4550,10 @@ static int hpsa_eh_device_reset_handler(struct scsi_cmnd *scsicmd)
+ 	h = sdev_to_hba(scsicmd->device);
+ 	if (h == NULL) /* paranoia */
+ 		return FAILED;
++
++	if (lockup_detected(h))
++		return FAILED;
++
+ 	dev = scsicmd->device->hostdata;
+ 	if (!dev) {
+ 		dev_err(&h->pdev->dev, "hpsa_eh_device_reset_handler: "

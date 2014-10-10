@@ -1,0 +1,24 @@
+hpsa: fix minor if-statement style issue in hpsa_init_one
+
+From: Robert Elliott <elliott@hp.com>
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+Reviewed-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index a267fd0..1f741dd 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7497,7 +7497,7 @@ reinit_after_soft_reset:
+ 	set_lockup_detected_for_all_cpus(h, 0);
+ 
+ 	rc = hpsa_pci_init(h);
+-	if (rc != 0)
++	if (rc)
+ 		goto clean2;	/* lockup, wq/aer/h */
+ 
+ 	sprintf(h->devname, HPSA "%d", number_of_controllers);

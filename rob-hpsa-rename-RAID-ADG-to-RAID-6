@@ -1,0 +1,40 @@
+hpsa: adjust RAID-1, RAID-1ADM, and RAID-6 names
+
+From: Robert Elliott <elliott@hp.com>
+
+HP now uses RAID-6 rather than RAID-ADG (Advanced Data Guarding)
+as the marketing name for our implementation of RAID-6.
+
+The driver considers RAID-1 and RAID-1+0 to be the same level, and
+considers RAID-1ADM and RAID-1+0ADM to be the same level.  Parenthesis
+can be used to reflect the optional +0 portion of both those RAID levels.
+
+Rename: RAID-ADG to RAID-6
+	RAID-1(1+0) to RAID-1(+0)
+	RAID-1(ADM) to RAID-1(+0)ADM
+
+Also, add another const after the pointer type as suggested
+by checkpatch.pl so the array is:
+	static const char * const raid_label[]
+
+Signed-off-by: Robert Elliott <elliott@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index b8e4058..99860c1 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -738,8 +738,8 @@ static inline int is_logical_dev_addr_mode(unsigned char scsi3addr[])
+ 	return (scsi3addr[3] & 0xC0) == 0x40;
+ }
+ 
+-static const char *raid_label[] = { "0", "4", "1(1+0)", "5", "5+1", "ADG",
+-	"1(ADM)", "UNKNOWN"
++static const char * const raid_label[] = { "0", "4", "1(+0)", "5", "5+1", "6",
++	"1(+0)ADM", "UNKNOWN"
+ };
+ #define HPSA_RAID_0	0
+ #define HPSA_RAID_4	1

@@ -1,0 +1,28 @@
+hpsa:  remove unneeded lockup check
+
+From: Webb Scales <webbnh@hp.com>
+
+Signed-off-by: Webb Scaled <webbnh@hp.com>
+Signed-off-by: Stephen M. Cameron <scameron@beardog.cce.hp.com>
+---
+ drivers/scsi/hpsa.c |    7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index eb1a98d..ec8e8e2 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -4847,13 +4847,6 @@ static int hpsa_scsi_queue_command(struct Scsi_Host *sh, struct scsi_cmnd *cmd)
+ 	}
+ 	c = cmd_tagged_alloc(h, cmd);
+ 
+-	if (unlikely(lockup_detected(h))) {
+-		cmd->result = DID_NO_CONNECT << 16;
+-		cmd_tagged_free(h, c); /* FIXME may not be necessary, as lockup detector also frees everything */
+-		cmd->scsi_done(cmd);
+-		return 0;
+-	}
+-
+ 	/* Call alternate submit routine for I/O accelerated commands.
+ 	 * Retries always go down the normal I/O path.
+ 	 */
